@@ -1,0 +1,308 @@
+= OSS開発者を\n増やしたい！
+
+: author
+   須藤功平
+: institution
+   クリアコード
+: content-source
+   Speee Cafe Meetup #02
+: date
+   2016-09-01
+: allotted-time
+   15m
+: theme
+   clear-code
+
+= OSSを開発する動機
+
+  * (('wait'))独りよがりがいい
+    * 他人の損得は気にしなくていい
+    * 他人からの圧力も気にしなくていい
+    * 自分が割に合うと思うか？がいい
+
+= 利用OSSにバグがあった！
+
+  * どうする？
+    (1) (('wait'))とりあえずツイート？
+    (2) (('wait'))ググる？
+    (3) (('wait'))最新バージョンを確認？
+    (4) (('wait'))違うOSSに乗り換え？
+
+= 私の場合
+
+よく使っているOSSの場合は…
+
+  * 調べて
+  * 直して
+  * 報告
+
+= 昨日の実例：Vagrant
+
+CentOS 5のVMにsshできない…
+
+  % vagrant up centos-5-i386
+  ...
+  centos-5-i386: Key inserted! Disconnecting ...
+  centos-5-i386: Warning: Authentication failure. Retrying...
+  centos-5-i386: Warning: Authentication failure. Retrying...
+  ...
+
+(('note:PGroongaのRPMをビルドしようとしていた'))
+
+= ググった
+
+(('note:http://qiita.com/cock1doodledoo/items/b32382776f76fb2d627c'))
+
+(('note:少し違う現象っぽいが'))↓で直ると書いている
+
+  # coderay ruby
+
+  config.ssh.insert_key = false
+
+(('wait'))
+(('tag:center'))
+回避策っぽい…調べよう
+
+= 調べて
+
+パスワードではログインできた
+
+  % vagrant ssh centos-5-i386
+  vagrant@127.0.0.1's password: (vagrant)
+  [vagrant@localhost ~]$ 
+
+= 調べて…
+
+ログを確認
+
+  [vagrant@localhost ~]$ sudo less /var/log/secure
+  ...
+  ... sshd[3750]: Authentication refused: bad ownership
+    or modes for file /home/vagrant/.ssh/authorized_keys
+  ...
+
+= 調べて……
+
+パーミッションを直すと\n
+公開鍵でログインできた
+
+  [vagrant@localhost ~]$ chmod go-rwx ~/.ssh/authorized_keys
+  [vagrant@localhost ~]$ exit
+  % vagrant ssh centos-5-i386
+  [vagrant@localhost ~]$ 
+
+= 調べて………
+
+authorized_keysでgrep
+
+  % grep authorized_keys /usr/share/vagrant
+  .../plugins/guests/bsd/cap/public_key.rb:...
+  ...
+  .../plugins/guests/linux/cap/public_key.rb:...
+  ...
+  .../plugins/guests/solaris/...
+  ...
+  .../plugins/guests/solaris11/...
+
+= 調べて…………
+
+GNU/Linuxなので↓を確認
+
+  .../plugins/guests/linux/cap/public_key.rb
+
+chmod忘れを発見
+
+= 直して
+
+  # coderay diff
+  --- .../linux/cap/public_key.rb.orig	...
+  +++ .../linux/cap/public_key.rb	...
+  @@ -54,6 +54,7 @@
+               if test -f ~/.ssh/authorized_keys; then
+                 grep ... > ~/.ssh/authorized_keys.tmp
+                 mv ~/.ssh/authorized_keys{.tmp,}
+  +              chmod 0600 ~/.ssh/authorized_keys
+               fi
+
+               rm -f '#{remote_path}'
+
+= 報告
+
+  * masterを確認
+    * (('wait'))(('note:https://github.com/mitchellh/vagrant/blob/master/plugins/guests/linux/cap/public_key.rb#L57'))
+    * (('wait'))同じchmodがすでにある！
+  * (('wait'))手元で修正して作業継続
+
+= ふりかえり
+
+  * 最初から最新バージョンを確認すればよかった？
+    * (('wait'))今回は調べた方でよかったかも
+    * (('wait'))10分位だしVagrantの事がわかったし
+    * (('wait'))（最新バージョンの用意は手間）
+    * (('wait'))↑自分が割りに合ったか基準
+
+= なぜ報告するのか
+
+  * (('wait'))自分が何度も回避するのが面倒
+    * ↑自分が割に合うか基準
+    * よく使うOSSなら違うマシンでも遭遇しやすい
+
+= 類似の事例
+
+  * mrubyがクラッシュするので修正
+    * #2732, #2867, #3087, #3090, #3129
+    * (('wait'))自分でパッチを管理するのが面倒
+  * PostgreSQL 9.6beta1の\n
+    DROP ACCESS METHOD IF EXISTS\n
+    が動かないので修正
+    * (('wait'))本体で直らないと使うのが手間
+
+= OSSを開発する動機
+
+  * 独りよがりがいい
+  * 自分が割に合うならやるといい
+    * (('wait'))OSSを開発する敷居が高いと\n
+      なかなか割に合わない！
+
+= OSS Gate
+
+OSS開発に\n
+参加する人を\n
+増やす取り組み
+
+= Gate == 門
+
+境界にあるもの
+
+= 扱う境界
+
+  # image
+  # src = images/oss-gate-border.svg
+  # relative_width = 100
+
+== スライドプロパティー
+
+: enable-title-on-image
+   false
+
+= ターゲット
+
+  # image
+  # src = images/oss-gate-target.svg
+  # relative_width = 100
+
+== スライドプロパティー
+
+: enable-title-on-image
+   false
+
+= やりたいこと
+
+  # image
+  # src = images/oss-gate-goal.svg
+  # relative_width = 100
+
+== スライドプロパティー
+
+: enable-title-on-image
+   false
+
+= 未参加者→参加者
+
+  # image
+  # src = images/oss-gate-workshop.svg
+  # relative_width = 100
+
+== スライドプロパティー
+
+: enable-title-on-image
+   false
+
+= ワークショップの内容
+
+  * (('wait'))未参加者の後押し
+    * すでに興味はある！
+  * (('wait'))どう後押せば…？
+
+= 未参加の理由？
+
+  (1) (('wait'))やり方がわからない
+  (2) (('wait'))なんとなく不安
+
+= ワークショップの内容
+
+  (1) (('wait'))やり方を1つ教える
+      * やり方がわかると参加できる！
+  (2) (('wait'))OSSの開発に実際に参加する
+      * 不安なのは((*未経験*))だから
+      * ワークショップで経験しよう！
+
+= 門をくぐる
+
+  # image
+  # src = images/oss-gate-pass-through.svg
+  # relative_width = 100
+
+== スライドプロパティー
+
+: enable-title-on-image
+   false
+
+= よりくぐりやすく
+
+  # image
+  # src = images/oss-gate-support.svg
+  # relative_width = 100
+
+== スライドプロパティー
+
+: enable-title-on-image
+   false
+
+= 参加者募集中
+
+  # image
+  # src = images/oss-gate-join-us.svg
+  # relative_width = 100
+
+== スライドプロパティー
+
+: enable-title-on-image
+   false
+
+= OSS Gateワークショップ
+
+  * ターゲット：未参加者→参加者
+  * 奇数月の最終土曜に開催中！
+    * 次回9/24
+    * 次々回11/26
+
+(('tag:center'))
+oss-gate.doorkeeper.jp
+
+= 組織としてOSS開発
+
+  * 個人
+    * 自分が割に合うと思うときに開発
+  * (('wait'))組織
+    * 「このケースは○○だから((*あなたの*))割に合わない？」\n
+      と個人に視点を提供
+    * ×「OSS開発する方針だからやろう」
+
+= OSS開発支援
+
+  # image
+  # src = images/oss-development-support.pdf
+  # relative_height = 100
+  # align = right
+  # relative_margin_right = -10
+
+* 企業向けサポート
+* Speeeさんにも\n
+  提供中
+
+== スライドプロパティー
+
+: enable-title-on-image
+   false
+
